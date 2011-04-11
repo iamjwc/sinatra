@@ -146,6 +146,63 @@ class BeforeFilterTest < Test::Unit::TestCase
   end
 end
 
+class BeforeActionFilterTest < Test::Unit::TestCase
+  it "executes filters in the order defined" do
+    invoked = 0
+    mock_app do
+      before        { invoked = 2 }
+      before_action { invoked += 3 }
+      get('/')      { invoked += 2 }
+      after         { invoked *= 2 }
+    end
+
+    get '/'
+    assert ok?
+
+    assert_equal 14, invoked
+  end
+
+  it "contains the same params from the url that the action has" do
+    mock_app do
+      before_action do
+        assert params.has_key?("one")
+        assert params.has_key?("two")
+        assert params.has_key?("splat")
+
+        assert_equal params[:one],   "uno"
+        assert_equal params[:two],   "dos"
+        assert_equal params[:splat], ["blah/blah"]
+      end
+
+      get('/:one/:two/*') { }
+    end
+
+    get '/uno/dos/blah/blah'
+    assert ok?
+  end
+
+  it "will not be called if there is no route that matches" do
+    times_called = 0
+    mock_app do
+      before_action { times_called += 1 }
+
+      get("/foo") {}
+      get("/bar") {}
+    end
+
+    assert_equal times_called, 0
+
+    get '/foo'
+    assert_equal times_called, 1
+
+    get '/baz'
+    assert_equal times_called, 1
+
+    get '/bar'
+    assert_equal times_called, 2
+  end
+end
+
 class AfterFilterTest < Test::Unit::TestCase
   it "executes filters in the order defined" do
     invoked = 0

@@ -713,6 +713,7 @@ module Sinatra
       if routes = base.routes[@request.request_method]
         routes.each do |pattern, keys, conditions, block|
           pass_block = process_route(pattern, keys, conditions) do
+            filter! :before_action
             route_eval(&block)
           end
         end
@@ -913,7 +914,7 @@ module Sinatra
       def reset!
         @conditions     = []
         @routes         = {}
-        @filters        = {:before => [], :after => []}
+        @filters        = {:before => [], :before_action => [], :after => []}
         @errors         = {}
         @middleware     = []
         @prototype      = nil
@@ -1050,6 +1051,14 @@ module Sinatra
       # response.
       def before(path = nil, options = {}, &block)
         add_filter(:before, path, options, &block)
+      end
+
+      # Define a before action filter; runs before all requests that are
+      # matched by a route defined in the application. runs within the same
+      # context as route handlers and may access/modify the request and
+      # response.
+      def before_action(path = nil, options = {}, &block)
+        add_filter(:before_action, path, options, &block)
       end
 
       # Define an after filter; runs after all requests within the same
